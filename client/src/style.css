@@ -241,7 +241,11 @@ textarea:focus { outline: none; border-color: var(--accent-primary); }
   .analytics-stats-grid { grid-template-columns: repeat(2, 1fr); }
   
   /* Mobile padding and layout overrides */
-  .navbar { padding: 1rem; }
+  .navbar { padding: 0.75rem 1rem; }
+  .logo span { display: none; } /* Hide 'QuizForge' text on mobile, keep icon */
+  .nav-actions { gap: 0.25rem !important; }
+  .nav-actions .btn-ghost { padding: 0.5rem; }
+  
   #app-container { margin: 1rem auto; padding: 0 0.5rem; }
   .card { padding: 1rem; }
   
