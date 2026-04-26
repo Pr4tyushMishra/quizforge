@@ -8,8 +8,10 @@ export const ApiService = {
       body: JSON.stringify({ text })
     });
     if (!response.ok) {
+      const status = response.status;
       const errData = await response.json().catch(() => null);
-      throw new Error(errData?.error || "API call failed (Modules)");
+      const msg = errData?.error || errData?.message || "Unknown error";
+      throw new Error(`API error (${status}): ${msg}`);
     }
     return response.json();
   },

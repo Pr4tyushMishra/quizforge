@@ -291,15 +291,12 @@ A short motivational closing (2-3 sentences). Be genuine and encouraging.
 
 Return ONLY the raw markdown. Do NOT wrap in code blocks.`;
         
-        // Use a direct call (analytics returns markdown, not JSON)
         const url = "https://openrouter.ai/api/v1/chat/completions";
-        const orHeaders = {
+        const headers = {
             "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://quizforge.vercel.app",
-            "X-Title": "QuizForge"
+            "Content-Type": "application/json"
         };
-        const orBody = {
+        const body = {
             model: "openai/gpt-oss-120b:free",
             messages: [
                 { role: "system", content: systemMsg },
@@ -307,7 +304,7 @@ Return ONLY the raw markdown. Do NOT wrap in code blocks.`;
             ]
         };
 
-        const response = await fetch(url, { method: "POST", headers: orHeaders, body: JSON.stringify(orBody) });
+        const response = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
         if (!response.ok) {
             const errText = await response.text();
             throw new Error(`OpenRouter HTTP error ${response.status}: ${errText}`);
