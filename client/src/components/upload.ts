@@ -1,3 +1,5 @@
+import { ApiService } from '../modules/api';
+
 export class UploadComponent {
   init() {
     const fileInput = document.getElementById('file-input') as HTMLInputElement;
@@ -46,7 +48,6 @@ export class UploadComponent {
           if (text.length >= 100) {
             sessionStorage.setItem('qf_syllabus', text);
             try {
-              const { ApiService } = await import('../modules/api');
               const data = await ApiService.extractModules(text);
               sessionStorage.setItem('qf_modules', JSON.stringify(data.modules));
               (window as any).Router.navigate('modules');

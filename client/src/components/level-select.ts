@@ -1,3 +1,5 @@
+import { ApiService } from '../modules/api';
+
 export class LevelSelectComponent {
   private _aborted = false;
 
@@ -44,7 +46,6 @@ export class LevelSelectComponent {
       }, 90000);
       
       try {
-        const { ApiService } = await import('../modules/api');
         startBtn.disabled = true;
         
         const quizData = await ApiService.generateQuiz(targetModules, selectedLevel);
