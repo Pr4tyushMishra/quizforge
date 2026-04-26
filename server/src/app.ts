@@ -47,7 +47,7 @@ async function safeGenerate(systemMessage: string, userPrompt: string, maxRetrie
     
     // We switch to a FREE model to avoid 402 Insufficient Credit errors
     const body = {
-        model: "google/gemini-2.0-flash-exp:free",
+        model: "google/gemini-flash-1.5-8b:free",
         messages: [
             { role: "system", content: systemMessage },
             { role: "user", content: userPrompt }
