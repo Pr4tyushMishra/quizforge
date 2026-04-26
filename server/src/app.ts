@@ -29,19 +29,48 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-    console.warn("GEMINI_API_KEY missing from environment variables.");
-}
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+const apiKey = process.env.OPENROUTER_API_KEY;
 
-// #4 — Helper: safely parse JSON from AI response with retry
-async function safeGenerate(model: any, prompt: string, maxRetries = 2): Promise<any> {
+if (!apiKey) {
+    console.warn("OPENROUTER_API_KEY missing from environment variables.");
+}
+
+// #4 — Helper: safely fetch from OpenRouter and parse JSON
+async function safeGenerate(systemMessage: string, userPrompt: string, maxRetries = 2): Promise<any> {
+    const url = "https://openrouter.ai/api/v1/chat/completions";
+    const headers = {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:5173", // Optional context
+        "X-Title": "QuizForge"
+    };
+    
+    // We default to gemini-2.5-flash via openrouter, but it can be changed.
+    const body = {
+        model: "google/gemini-2.5-flash",
+        messages: [
+            { role: "system", content: systemMessage },
+            { role: "user", content: userPrompt }
+        ]
+    };
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-            const result = await model.generateContent(prompt);
-            let responseText = result.response.text();
+            const response = await fetch(url, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`OpenRouter HTTP error ${response.status}: ${errText}`);
+            }
+
+            const data = await response.json();
+            let responseText = data.choices[0].message.content;
             
+            // Remove markdown codeblock wrapper if present
             if (responseText.includes('```json')) {
                 responseText = responseText.replace(/```json|```/g, '').trim();
             }
@@ -49,7 +78,7 @@ async function safeGenerate(model: any, prompt: string, maxRetries = 2): Promise
             return JSON.parse(responseText);
         } catch (err: any) {
             if (attempt === maxRetries) {
-                throw new Error(`Failed to get valid JSON after ${maxRetries + 1} attempts: ${err.message}`);
+                throw new Error(`Failed to get valid JSON from OpenRouter after ${maxRetries + 1} attempts: ${err.message}`);
             }
             // Wait 1s before retrying
             await new Promise(r => setTimeout(r, 1000));
@@ -57,7 +86,7 @@ async function safeGenerate(model: any, prompt: string, maxRetries = 2): Promise
     }
 }
 
-// #2 — Input validation helpers
+// --- Validation Helpers ---
 function validateText(text: any): string | null {
     if (typeof text !== 'string') return 'text must be a string';
     if (text.length < 100) return 'text must be at least 100 characters';
@@ -88,18 +117,12 @@ function validateAttempt(attempt: any): string | null {
 app.post('/api/modules', async (req, res) => {
     try {
         const { text } = req.body;
-
-        // #2 — Validate input
         const err = validateText(text);
         if (err) return res.status(400).json({ error: err });
-
-        if (!genAI) throw new Error("API key not configured");
+        if (!process.env.OPENROUTER_API_KEY) throw new Error("API key not configured");
         
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        
-        const prompt = `
-System: You are an expert academic curriculum analyzer.
-User: Analyze the following syllabus/topic content and extract all distinct modules or chapters. For each module, provide:
+        const systemMsg = "You are an expert academic curriculum analyzer.";
+        const prompt = `Analyze the following syllabus/topic content and extract all distinct modules or chapters. For each module, provide:
 1. A short, clear module name
 2. A one-sentence description
 3. A list of 3-6 key subtopics
@@ -117,12 +140,11 @@ Return ONLY valid JSON in this format:
 }
 
 Syllabus content:
-${text.substring(0, 30000)}`;  // cap input to first 30k chars
-        
-        const data = await safeGenerate(model, prompt);
+${text.substring(0, 30000)}`;
+
+        const data = await safeGenerate(systemMsg, prompt);
         res.json(data);
     } catch (error: any) {
-        // #13 — Only log the message, not the full error object
         console.error('Module extraction error:', error.message);
         res.status(500).json({ error: error.message || "Failed to process syllabus" });
     }
@@ -132,31 +154,27 @@ app.post('/api/generate', async (req, res) => {
     try {
         const { modules, level } = req.body;
         
-        // #2 — Validate inputs
         const modErr = validateModules(modules);
         if (modErr) return res.status(400).json({ error: modErr });
         const lvlErr = validateLevel(level);
         if (lvlErr) return res.status(400).json({ error: lvlErr });
 
-        if (!genAI) throw new Error("API key not configured");
-        
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        if (!process.env.OPENROUTER_API_KEY) throw new Error("API key not configured");
         
         let systemMsg = "";
         let count = 20;
         
         if (level === 'easy') {
-            systemMsg = `System: You are an expert academic quiz designer. Produce exactly 20 easy-level unique MCQ questions testing conceptual understanding. All 4 options (A,B,C,D) must be plausible. Provide a brief explanation. Return ONLY valid JSON format.`;
+            systemMsg = `You are an expert academic quiz designer. Produce exactly 20 easy-level unique MCQ questions testing conceptual understanding. All 4 options (A,B,C,D) must be plausible. Provide a brief explanation. Return ONLY valid JSON format.`;
             count = 20;
         } else if (level === 'intermediate') {
-            systemMsg = `System: You are a senior academic assessment designer. Produce exactly 40 applied and analytical intermediate-level unique MCQ questions. Case-based or real-world scenario. Return ONLY valid JSON format.`;
+            systemMsg = `You are a senior academic assessment designer. Produce exactly 40 applied and analytical intermediate-level unique MCQ questions. Case-based or real-world scenario. Return ONLY valid JSON format.`;
             count = 40;
         } else {
-            systemMsg = `System: You are an official exam paper designer. Produce exactly 20 hard-level exam-grade unique questions including case studies or paragraph comprehension. Return ONLY valid JSON format.`;
+            systemMsg = `You are an official exam paper designer. Produce exactly 20 hard-level exam-grade unique questions including case studies or paragraph comprehension. Return ONLY valid JSON format.`;
             count = 20;
         }
 
-        // Sanitize module names to prevent prompt injection
         const sanitizedModules = modules.map((m: any) => ({
             id: String(m.id || '').substring(0, 50),
             name: String(m.name || '').substring(0, 200),
@@ -164,8 +182,7 @@ app.post('/api/generate', async (req, res) => {
             subtopics: Array.isArray(m.subtopics) ? m.subtopics.map((s: any) => String(s).substring(0, 200)).slice(0, 10) : []
         }));
         
-        const prompt = `${systemMsg}
-Generate exactly ${count} unique questions for the following modules:
+        const prompt = `Generate exactly ${count} unique questions for the following modules:
 ${JSON.stringify(sanitizedModules)}
 
 Return JSON:
@@ -184,7 +201,7 @@ Return JSON:
   ]
 }`;
         
-        const data = await safeGenerate(model, prompt);
+        const data = await safeGenerate(systemMsg, prompt);
         res.json(data);
     } catch (error: any) {
         console.error('Quiz generation error:', error.message);
@@ -195,16 +212,11 @@ Return JSON:
 app.post('/api/analytics', async (req, res) => {
     try {
         const { attempt } = req.body;
-        
-        // #2 — Validate input
         const err = validateAttempt(attempt);
         if (err) return res.status(400).json({ error: err });
 
-        if (!genAI) throw new Error("API key not configured");
+        if (!process.env.OPENROUTER_API_KEY) throw new Error("API key not configured");
         
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-        // Build topic-wise breakdown — #8 division by zero guard
         const topicStats: Record<string, {correct:number, total:number, wrongQs:string[]}> = {};
         (attempt.resultsReview || []).forEach((q: any) => {
             const topic = String(q.topic || 'General').substring(0, 100);
@@ -222,7 +234,8 @@ app.post('/api/analytics', async (req, res) => {
         const durationStr = `${Math.floor((attempt.duration || 0) / 60)} min ${(attempt.duration || 0) % 60} sec`;
         const scorePct = attempt.score.total > 0 ? Math.round(attempt.score.correct / attempt.score.total * 100) : 0;
         
-        const prompt = `You are an expert academic performance coach and learning strategist. A student just completed a quiz and needs a detailed, actionable, and easy-to-understand performance report.
+        const systemMsg = "You are an expert academic performance coach and learning strategist.";
+        const prompt = `A student just completed a quiz and needs a detailed, actionable, and easy-to-understand performance report.
 
 ## Student's Quiz Results
 
@@ -278,8 +291,26 @@ A short motivational closing (2-3 sentences). Be genuine and encouraging.
 
 Return ONLY the raw markdown. Do NOT wrap in code blocks.`;
         
-        const result = await model.generateContent(prompt);
-        let responseText = result.response.text();
+        const url = "https://openrouter.ai/api/v1/chat/completions";
+        const headers = {
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json"
+        };
+        const body = {
+            model: "google/gemini-2.5-flash",
+            messages: [
+                { role: "system", content: systemMsg },
+                { role: "user", content: prompt }
+            ]
+        };
+
+        const response = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`OpenRouter HTTP error ${response.status}: ${errText}`);
+        }
+        const data = await response.json();
+        let responseText = data.choices[0].message.content;
         
         res.json({ markdown: responseText });
     } catch (error: any) {
