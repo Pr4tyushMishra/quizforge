@@ -77,7 +77,6 @@ export class QuizComponent {
 
     const level = sessionStorage.getItem('qf_level') || 'easy';
     // Hard: 50, Intermediate: 30, Easy: 20
-    const qCount = this.quizData.questions.length;
     this.timeLimit = level === 'easy' ? 20 * 60 : level === 'intermediate' ? 45 * 60 : 90 * 60;
 
     const lvlBadge = document.getElementById('quiz-level-badge');
