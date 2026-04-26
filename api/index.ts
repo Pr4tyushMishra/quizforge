@@ -13,9 +13,6 @@ app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
 // Use the provided API key from environment variables
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
 // Validation Helpers
 function validateText(text: any) {
     if (typeof text !== 'string' || text.length < 100) return 'Syllabus must be at least 100 characters';
@@ -23,11 +20,15 @@ function validateText(text: any) {
 }
 
 async function safeGenerate(systemMessage: string, userPrompt: string) {
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
         throw new Error("GEMINI_API_KEY is missing from environment variables.");
     }
 
     try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        
         const fullPrompt = `${systemMessage}\n\n${userPrompt}`;
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
@@ -40,7 +41,12 @@ async function safeGenerate(systemMessage: string, userPrompt: string) {
             responseText = responseText.replace(/```/g, '').trim();
         }
         
-        return JSON.parse(responseText);
+        try {
+            return JSON.parse(responseText);
+        } catch (parseErr) {
+            console.error("JSON Parse Error. Raw Response:", responseText);
+            throw new Error("AI returned invalid JSON format. Please try again.");
+        }
     } catch (err: any) {
         console.error("Gemini Generation Error:", err);
         throw err;
@@ -104,9 +110,15 @@ app.post('/api/analytics', async (req, res) => {
     try {
         const { attempt } = req.body;
         const systemMsg = "You are an expert academic performance coach.";
-        const prompt = `${systemMsg}\n\nStudent Results: ${JSON.stringify(attempt)}. Generate a comprehensive markdown report.`;
+        const prompt = `Student Results: ${JSON.stringify(attempt)}. Generate a comprehensive markdown report.`;
         
-        const result = await model.generateContent(prompt);
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) throw new Error("GEMINI_API_KEY is missing.");
+        
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        
+        const result = await model.generateContent(`${systemMsg}\n\n${prompt}`);
         const response = await result.response;
         res.json({ markdown: response.text() });
     } catch (error: any) {
