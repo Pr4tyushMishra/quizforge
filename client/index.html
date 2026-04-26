@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuizForge — AI-Powered Exam Practice</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <!-- Top Nav -->
+    <nav class="navbar">
+      <div class="logo">
+        <i data-lucide="brain-circuit"></i>
+        <span>QuizForge</span>
+      </div>
+      <div class="nav-actions" style="display:flex;gap:0.5rem">
+        <button id="nav-back" class="btn-ghost" onclick="Router.back()" disabled title="Go Back"><i data-lucide="arrow-left"></i></button>
+        <button id="nav-forward" class="btn-ghost" onclick="Router.forward()" disabled title="Go Forward"><i data-lucide="arrow-right"></i></button>
+        <button class="btn-ghost" onclick="Router.navigate('upload')" title="Home"><i data-lucide="home"></i></button>
+        <button class="btn-ghost" onclick="Router.navigate('history')" title="Quiz History"><i data-lucide="history"></i></button>
+        <button class="btn-ghost" onclick="document.getElementById('settings-modal').classList.remove('hidden')" title="Settings"><i data-lucide="settings"></i></button>
+      </div>
+    </nav>
+
+    <!-- Main Container for Screens -->
+    <main id="app-container">
+      <!-- screens will be toggled by router -->
+      
+      <!-- SCREEN 1: Upload / Input -->
+      <section id="screen-upload" class="screen active card">
+        <div class="screen-header">
+           <h2>Welcome to QuizForge</h2>
+           <p>Upload a syllabus or paste topics to generate your tailored AI quiz.</p>
+        </div>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="upload">📄 Upload Document</button>
+          <button class="tab-btn" data-tab="paste">✏️ Paste Text</button>
+        </div>
+        
+        <div class="tab-content active" id="tab-upload">
+          <div class="upload-zone" id="drop-zone">
+            <i data-lucide="upload-cloud"></i>
+            <p>Drag & Drop your syllabus here</p>
+            <span class="text-muted">Accepts .pdf, .txt. Max 5MB.</span>
+            <input type="file" id="file-input" accept=".pdf,.txt" hidden />
+            <button class="btn-ghost" onclick="document.getElementById('file-input').click()">Browse Files</button>
+          </div>
+          <div id="file-preview" class="hidden">
+            <span id="file-name"></span>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-paste">
+          <textarea id="text-input" placeholder="Paste your syllabus, topic outline, or study notes here... (min 100 chars)"></textarea>
+          <div class="char-count" id="char-count">0 / 100 min chars</div>
+        </div>
+
+        <button id="btn-analyze" class="btn-primary w-full mt-lg" disabled>
+          Analyze Syllabus <i data-lucide="arrow-right"></i>
+        </button>
+
+        <!-- Recent attempts on home -->
+        <div id="home-history" class="mt-lg" style="display:none;">
+          <h3 style="margin-bottom:1rem; color:var(--text-muted);">📋 Recent Attempts</h3>
+          <div id="home-history-list" style="display:flex; flex-direction:column; gap:0.75rem;">
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: Module Extraction & Selection -->
+      <section id="screen-modules" class="screen card">
+        <div class="screen-header">
+           <h2 id="modules-header">We found 0 modules in your syllabus</h2>
+           <p>Select the topics you want to practice.</p>
+        </div>
+        <div class="mb-4">
+          <button id="btn-select-all" class="btn-ghost">Select All</button>
+        </div>
+        <div id="modules-grid" class="modules-grid">
+           <!-- Dynamic content -->
+        </div>
+        <div class="actions mt-lg" style="display:flex; gap:1rem; justify-content:space-between">
+           <button class="btn-ghost" onclick="Router.navigate('upload')">Back</button>
+           <button id="btn-practice-selected" class="btn-primary" disabled>
+             Practice Selected Modules <i data-lucide="arrow-right"></i>
+           </button>
+        </div>
+      </section>
+
+      <!-- SCREEN 3: Level Selection -->
+      <section id="screen-level" class="screen">
+        <div class="screen-header card">
+           <h2>Choose Your Challenge Level</h2>
+        </div>
+        <div class="level-grid mt-lg">
+          <div class="level-card card" data-level="easy" style="border-color: var(--accent-primary);">
+            <h3>🌱 EASY</h3>
+            <h4 class="mt-2 text-muted">Concept Builder</h4>
+            <p class="mt-2">Foundational knowledge, conceptual understanding.</p>
+            <ul class="text-muted mt-2" style="margin-left: 1rem;"><li>20 Questions</li><li>MCQ Format</li></ul>
+          </div>
+          <div class="level-card card" data-level="intermediate" style="border-color: var(--accent-second);">
+            <h3>⚡ INTERMEDIATE</h3>
+            <h4 class="mt-2 text-muted">Applied Thinker</h4>
+            <p class="mt-2">Case-based, real-world application reasoning.</p>
+            <ul class="text-muted mt-2" style="margin-left: 1rem;"><li>40 Questions</li><li>Case-based</li></ul>
+          </div>
+          <div class="level-card card" data-level="hard" style="border-color: var(--accent-warm);">
+            <h3>🔥 HARD</h3>
+            <h4 class="mt-2 text-muted">Exam Simulator</h4>
+            <p class="mt-2">Complex cases, paragraph-based, exam style.</p>
+            <ul class="text-muted mt-2" style="margin-left: 1rem;"><li>50 Questions</li><li>Full format</li></ul>
+          </div>
+        </div>
+        <div class="actions mt-lg" style="display:flex; gap:1rem; justify-content:space-between">
+           <button class="btn-ghost" onclick="Router.navigate('modules')">Back</button>
+           <button id="btn-start-quiz" class="btn-primary" disabled>
+             Generate Quiz <i data-lucide="zap"></i>
+           </button>
+        </div>
+      </section>
+      
+      <!-- SCREEN 4: Loading -->
+      <section id="screen-loading" class="screen card text-center" style="padding: 4rem;">
+        <i data-lucide="loader" class="spin" style="width:48px;height:48px;color:var(--accent-primary);margin:auto;display:block;"></i>
+        <h2 class="mt-lg">Crafting questions that actually make you think...</h2>
+        <p class="text-muted mt-2" id="loading-status">Researching topic context and validating...</p>
+        <button id="btn-cancel-loading" class="btn-ghost mt-lg" style="color:var(--accent-danger);border-color:var(--accent-danger);">Cancel</button>
+      </section>
+
+      <!-- SCREEN 5: Active Quiz -->
+      <section id="screen-quiz" class="screen">
+        <div class="quiz-layout">
+          <!-- Left: Main quiz content -->
+          <div class="quiz-main">
+            <div class="card mb-4" style="display:flex; justify-content:space-between; align-items:center;">
+               <div>
+                 <span id="quiz-module-badge" class="badge">Quiz</span>
+                 <span id="quiz-level-badge" class="badge" style="background:var(--accent-second);color:white">LEVEL</span>
+               </div>
+               <div class="mono" style="font-size:1.25rem;">
+                 <i data-lucide="clock"></i> <span id="quiz-timer">00:00</span>
+               </div>
+            </div>
+            
+            <div style="background:var(--bg-secondary); height:4px; margin-bottom:2rem; border-radius:2px; overflow:hidden;">
+              <div id="quiz-progress" style="background:var(--accent-primary); width:0%; height:100%; transition: width 0.3s;"></div>
+            </div>
+
+            <div class="card mb-4">
+              <div class="mono text-muted mb-4" id="quiz-qnum">Question 1 of 20</div>
+              <h2 id="quiz-question-text" style="line-height:1.4">Loading question...</h2>
+              
+              <div id="quiz-options" class="mt-lg" style="display:flex; flex-direction:column; gap:1rem;">
+                 <!-- Dynamically injected -->
+              </div>
+            </div>
+
+            <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+               <button id="btn-flag" class="btn-ghost" style="color:var(--accent-warm);border-color:var(--accent-warm);">
+                 <i data-lucide="flag"></i> Flag for Review
+               </button>
+               <div style="display:flex; gap:1rem;">
+                 <button id="btn-quiz-prev" class="btn-ghost">Previous</button>
+                 <button id="btn-quiz-next" class="btn-primary">Next</button>
+                 <button id="btn-quiz-submit" class="btn-primary" style="background:var(--accent-warm);color:#000;">Submit Quiz</button>
+               </div>
+            </div>
+          </div>
+
+          <!-- Right: Question Navigator -->
+          <div class="quiz-navigator card">
+            <h4 style="margin-bottom:1rem; color:var(--text-muted);">Questions</h4>
+            <div id="quiz-nav-grid" class="nav-grid">
+              <!-- Dynamically injected numbered dots -->
+            </div>
+            <div class="nav-legend mt-lg">
+              <div><span class="nav-dot-legend dot-current"></span> Current</div>
+              <div><span class="nav-dot-legend dot-answered"></span> Answered</div>
+              <div><span class="nav-dot-legend dot-flagged"></span> Flagged</div>
+              <div><span class="nav-dot-legend dot-unanswered"></span> Unanswered</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 6: Results -->
+      <section id="screen-results" class="screen">
+        <div class="card text-center mb-4">
+          <div style="width:120px; height:120px; border-radius:50%; border:8px solid var(--accent-primary); display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;">
+             <h2 id="result-percentage" style="font-size:2rem; margin:0;">0%</h2>
+          </div>
+          <h2>Quiz Completed</h2>
+          <p class="text-muted" id="result-stats" class="mt-2 text-muted">Correct: 0 | Wrong: 0 | Skipped: 0</p>
+          <div class="mt-lg" style="display:flex; justify-content:center; gap:1rem;">
+            <button class="btn-ghost" onclick="Router.navigate('upload')">New Quiz</button>
+            <button class="btn-primary" onclick="Router.navigate('analytics')">See Analysis <i data-lucide="bar-chart-2"></i></button>
+          </div>
+        </div>
+        
+        <div id="results-list" style="display:flex; flex-direction:column; gap:1rem;">
+          <!-- Review cards -->
+        </div>
+      </section>
+
+      <!-- SCREEN 7: Analytics -->
+      <section id="screen-analytics" class="screen">
+        <div class="card mb-4">
+          <h2>Performance Analysis</h2>
+          <div id="analytics-content" class="mt-lg text-muted">
+            <i data-lucide="loader" class="spin"></i> Generating deep analysis...
+          </div>
+        </div>
+        <button class="btn-primary w-full" onclick="Router.navigate('upload')">Start New Topic</button>
+      </section>
+
+      <!-- SCREEN 8: History -->
+      <section id="screen-history" class="screen">
+        <div class="card mb-4" style="display:flex;justify-content:space-between;align-items:center;">
+          <h2>Your Quiz History</h2>
+          <button id="btn-clear-history" class="btn-ghost" style="color:var(--accent-danger);border-color:var(--accent-danger);">Clear History</button>
+        </div>
+        <div id="history-list" style="display:flex; flex-direction:column; gap:1rem;">
+          <!-- Dynamically injected -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:100; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+       <div class="card" style="width:100%; max-width:400px; margin: 1rem;">
+          <h2>Settings</h2>
+          <div class="mt-4">
+             <label class="text-muted">API Connection Status:</label>
+             <p class="mono mt-2" style="color:var(--accent-primary)">Running Local Node Server ✅</p>
+          </div>
+          <button class="btn-primary w-full mt-lg" onclick="document.getElementById('settings-modal').classList.add('hidden')">Close</button>
+       </div>
+    </div>
+
+    <script type="module" src="./src/app.ts"></script>
+    <script>
+      lucide.createIcons();
+    </script>
+  </body>
+</html>
