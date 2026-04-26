@@ -45,9 +45,9 @@ async function safeGenerate(systemMessage: string, userPrompt: string, maxRetrie
         "X-Title": "QuizForge"
     };
     
-    // We switch to a FREE model to avoid 402 Insufficient Credit errors
+    // Using OpenRouter free model
     const body = {
-        model: "google/gemini-flash-1.5-8b:free",
+        model: "openai/gpt-oss-120b:free",
         messages: [
             { role: "system", content: systemMessage },
             { role: "user", content: userPrompt }
@@ -297,7 +297,7 @@ Return ONLY the raw markdown. Do NOT wrap in code blocks.`;
             "Content-Type": "application/json"
         };
         const body = {
-            model: "google/gemini-2.5-flash",
+            model: "openai/gpt-oss-120b:free",
             messages: [
                 { role: "system", content: systemMsg },
                 { role: "user", content: prompt }

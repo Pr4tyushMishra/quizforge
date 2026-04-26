@@ -6,9 +6,6 @@ export class QuizComponent {
   private timerInt: any = null;
   private timeElapsed = 0;
   private timeLimit = 0;
-  private expectedCount = 10;
-  private totalChunks = 1;
-  private _bgAbort = false;
 
   init() {
     window.addEventListener('quizLoaded', () => {
@@ -47,10 +44,9 @@ export class QuizComponent {
 
     // #6 — Clear timer when navigating away from quiz
     window.addEventListener('route', (e: any) => {
-      if (e.detail.screen !== 'quiz') {
-        if (this.timerInt) clearInterval(this.timerInt);
+      if (e.detail.screen !== 'quiz' && this.timerInt) {
+        clearInterval(this.timerInt);
         this.timerInt = null;
-        this._bgAbort = true; // stop background fetches
       }
     });
   }
@@ -70,10 +66,6 @@ export class QuizComponent {
     const lvlBadge = document.getElementById('quiz-level-badge');
     if (lvlBadge) lvlBadge.textContent = level.toUpperCase();
 
-    this.expectedCount = parseInt(sessionStorage.getItem('qf_expected_count') || '10');
-    this.totalChunks = parseInt(sessionStorage.getItem('qf_total_chunks') || '1');
-    this._bgAbort = false;
-
     if (this.timerInt) clearInterval(this.timerInt);
     this.timerInt = setInterval(() => {
       this.timeElapsed++;
@@ -84,40 +76,6 @@ export class QuizComponent {
     }, 1000);
 
     this.renderQuestion();
-    
-    // Start background loading if needed
-    if (this.quizData.chunksLoaded < this.totalChunks) {
-      this.startBackgroundLoading();
-    }
-  }
-
-  async startBackgroundLoading() {
-    try {
-      const { ApiService } = await import('../modules/api');
-      const level = sessionStorage.getItem('qf_level');
-      
-      const selectedIds = JSON.parse(sessionStorage.getItem('qf_selected_modules') || '[]');
-      const allModules = JSON.parse(sessionStorage.getItem('qf_modules') || '[]');
-      const targetModules = allModules.filter((m: any) => selectedIds.includes(m.id));
-
-      while (this.quizData.chunksLoaded < this.totalChunks) {
-        if (this._bgAbort) break;
-        
-        const nextChunk = this.quizData.chunksLoaded + 1;
-        const newChunkData = await ApiService.generateQuiz(targetModules, level || 'easy', nextChunk, this.totalChunks);
-        
-        if (this._bgAbort) break;
-        
-        this.quizData.questions.push(...newChunkData.questions);
-        this.quizData.chunksLoaded = nextChunk;
-        sessionStorage.setItem('qf_quiz', JSON.stringify(this.quizData));
-        
-        this.renderNavigator();
-        this.renderQuestion();
-      }
-    } catch (e) {
-      console.error("Background loading failed", e);
-    }
   }
 
   updateTimer() {
@@ -172,25 +130,14 @@ export class QuizComponent {
 
     const btnPrev = document.getElementById('btn-quiz-prev') as HTMLButtonElement;
     const btnNext = document.getElementById('btn-quiz-next') as HTMLButtonElement;
-    const btnSubmit = document.getElementById('btn-quiz-submit') as HTMLButtonElement;
 
     if (btnPrev) btnPrev.disabled = this.currentIdx === 0;
     
-    if (this.currentIdx === this.expectedCount - 1) {
+    // #11 — Submit always visible, Next hidden on last question
+    if (this.currentIdx === total - 1) {
       if (btnNext) btnNext.classList.add('hidden');
-      if (btnSubmit) btnSubmit.classList.remove('hidden');
     } else {
-      if (btnSubmit) btnSubmit.classList.add('hidden');
-      if (btnNext) {
-         if (this.currentIdx === this.quizData.questions.length - 1) {
-             btnNext.disabled = true;
-             btnNext.innerHTML = `<i data-lucide="loader" class="spin"></i> Loading...`;
-         } else {
-             btnNext.classList.remove('hidden');
-             btnNext.disabled = false;
-             btnNext.textContent = 'Next';
-         }
-      }
+      if (btnNext) btnNext.classList.remove('hidden');
     }
 
     if ((window as any).lucide) (window as any).lucide.createIcons();

@@ -29,7 +29,7 @@ client/dist/
 dist/
 dist-server/
 coverage/
-.netlify/
+.vercel/
 
 # Mac / OS generated files
 .DS_Store

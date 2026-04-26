@@ -30,11 +30,6 @@ export class LevelSelectComponent {
       
       sessionStorage.setItem('qf_level', selectedLevel);
       
-      const expectedCount = selectedLevel === 'easy' ? 20 : selectedLevel === 'intermediate' ? 40 : 50;
-      const totalChunks = expectedCount / 10;
-      sessionStorage.setItem('qf_expected_count', expectedCount.toString());
-      sessionStorage.setItem('qf_total_chunks', totalChunks.toString());
-
       (window as any).Router.navigate('loading');
       this._aborted = false;
       
@@ -52,16 +47,12 @@ export class LevelSelectComponent {
         const { ApiService } = await import('../modules/api');
         startBtn.disabled = true;
         
-        // Fetch only Chunk 1
-        const quizData = await ApiService.generateQuiz(targetModules, selectedLevel, 1, totalChunks);
+        const quizData = await ApiService.generateQuiz(targetModules, selectedLevel);
         
         clearTimeout(loadingTimeout);
         if (this._aborted) return; // user cancelled
 
-        sessionStorage.setItem('qf_quiz', JSON.stringify({
-          questions: quizData.questions,
-          chunksLoaded: 1
-        }));
+        sessionStorage.setItem('qf_quiz', JSON.stringify(quizData));
         (window as any).Router.navigate('quiz');
         window.dispatchEvent(new CustomEvent('quizLoaded'));
       } catch (err: any) {

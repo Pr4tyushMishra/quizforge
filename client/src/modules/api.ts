@@ -14,11 +14,11 @@ export const ApiService = {
     return response.json();
   },
 
-  async generateQuiz(modules: any[], level: string, chunkIndex = 1, totalChunks = 1) {
+  async generateQuiz(modules: any[], level: string) {
     const response = await fetch(`${API_URL}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ modules, level, chunkIndex, totalChunks })
+      body: JSON.stringify({ modules, level })
     });
     if (!response.ok) {
       const errData = await response.json().catch(() => null);
