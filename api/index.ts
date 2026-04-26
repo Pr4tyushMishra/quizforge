@@ -27,19 +27,17 @@ async function safeGenerate(systemMessage: string, userPrompt: string) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.5-flash",
+            generationConfig: {
+                responseMimeType: "application/json"
+            }
+        });
         
         const fullPrompt = `${systemMessage}\n\n${userPrompt}`;
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
-        let responseText = response.text();
-        
-        // Remove markdown codeblock wrapper if present
-        if (responseText.includes('```json')) {
-            responseText = responseText.replace(/```json|```/g, '').trim();
-        } else if (responseText.includes('```')) {
-            responseText = responseText.replace(/```/g, '').trim();
-        }
+        const responseText = response.text();
         
         try {
             return JSON.parse(responseText);
