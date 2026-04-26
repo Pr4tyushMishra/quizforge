@@ -4,7 +4,7 @@
   "outputDirectory": "client/dist",
   "functions": {
     "api/**/*.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   },
   "rewrites": [

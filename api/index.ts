@@ -30,7 +30,7 @@ async function safeGenerate(systemMessage: string, userPrompt: string, maxRetrie
     };
     
     const body = {
-        model: "openai/gpt-oss-120b:free",
+        model: "google/gemini-flash-1.5-8b:free",
         messages: [
             { role: "system", content: systemMessage },
             { role: "user", content: userPrompt }
@@ -139,7 +139,7 @@ app.post('/api/analytics', async (req, res) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "openai/gpt-oss-120b:free",
+                model: "google/gemini-flash-1.5-8b:free",
                 messages: [{ role: "user", content: prompt }]
             })
         });
