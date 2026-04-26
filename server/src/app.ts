@@ -114,6 +114,14 @@ function validateAttempt(attempt: any): string | null {
     return null;
 }
 
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        hasKey: !!process.env.OPENROUTER_API_KEY,
+        env: process.env.NODE_ENV
+    });
+});
+
 app.post('/api/modules', async (req, res) => {
     try {
         const { text } = req.body;
