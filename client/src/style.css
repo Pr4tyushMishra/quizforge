@@ -239,4 +239,32 @@ textarea:focus { outline: none; border-color: var(--accent-primary); }
 @media (max-width: 640px) {
   .analytics-summary { flex-direction: column; }
   .analytics-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  
+  /* Mobile padding and layout overrides */
+  .navbar { padding: 1rem; }
+  #app-container { margin: 1rem auto; padding: 0 0.5rem; }
+  .card { padding: 1rem; }
+  
+  /* Stack Action Buttons */
+  .actions { flex-direction: column; gap: 0.5rem; }
+  .actions button { width: 100%; justify-content: center; }
+  
+  .quiz-main .card.mb-4:last-of-type { flex-direction: column; gap: 1rem; align-items: stretch; }
+  .quiz-main .card.mb-4:last-of-type > div { display: flex; flex-direction: column; width: 100%; gap: 0.5rem; }
+  .quiz-main .card.mb-4:last-of-type button { width: 100%; justify-content: center; }
+  
+  /* Typography */
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  
+  /* Grids and Tabs */
+  .modules-grid { grid-template-columns: 1fr; }
+  .tabs { flex-wrap: wrap; }
+  .nav-grid { grid-template-columns: repeat(5, 1fr); }
+  .upload-zone { padding: 1.5rem; }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .nav-grid { grid-template-columns: repeat(10, 1fr); }
+  .modules-grid { grid-template-columns: repeat(2, 1fr); }
 }
