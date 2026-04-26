@@ -13,8 +13,9 @@ const port = process.env.PORT || 3000;
 // #14 — Helmet security headers
 app.use(helmet());
 
-// #1 — Restrict CORS to frontend origin only
-app.use(cors({ origin: ['http://localhost:5173', 'http://127.0.0.1:5173'] }));
+// #1 — Allow localhost for dev, and allow any origin for production deployment 
+// (Since the API key is secured on the backend and we have rate limiting)
+app.use(cors());
 
 app.use(express.json({ limit: '2mb' })); // tightened from 10mb
 

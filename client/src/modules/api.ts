@@ -7,7 +7,10 @@ export const ApiService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
     });
-    if (!response.ok) throw new Error("API call failed");
+    if (!response.ok) {
+      const errData = await response.json().catch(() => null);
+      throw new Error(errData?.error || "API call failed (Modules)");
+    }
     return response.json();
   },
 
@@ -17,7 +20,10 @@ export const ApiService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ modules, level })
     });
-    if (!response.ok) throw new Error("API call failed");
+    if (!response.ok) {
+      const errData = await response.json().catch(() => null);
+      throw new Error(errData?.error || "API call failed (Generate)");
+    }
     return response.json();
   },
 
@@ -27,7 +33,10 @@ export const ApiService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ attempt })
     });
-    if (!response.ok) throw new Error("API call failed");
+    if (!response.ok) {
+      const errData = await response.json().catch(() => null);
+      throw new Error(errData?.error || "API call failed (Analytics)");
+    }
     return response.json();
   }
 };
