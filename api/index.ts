@@ -30,7 +30,7 @@ async function safeGenerate(systemMessage: string, userPrompt: string, maxRetrie
     };
     
     const body = {
-        model: "google/gemini-flash-1.5-8b:free",
+        model: "google/gemini-flash-1.5-8b",
         messages: [
             { role: "system", content: systemMessage },
             { role: "user", content: userPrompt }
