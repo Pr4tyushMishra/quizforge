@@ -130,7 +130,7 @@ ${text.substring(0, 30000)}`;  // cap input to first 30k chars
 
 app.post('/api/generate', async (req, res) => {
     try {
-        const { modules, level } = req.body;
+        const { modules, level, chunkIndex, totalChunks } = req.body;
         
         // #2 — Validate inputs
         const modErr = validateModules(modules);
@@ -142,18 +142,17 @@ app.post('/api/generate', async (req, res) => {
         
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         
+        const safeChunkIndex = parseInt(chunkIndex) || 1;
+        const safeTotalChunks = parseInt(totalChunks) || 1;
+        
         let systemMsg = "";
-        let count = 20;
         
         if (level === 'easy') {
             systemMsg = `System: You are an expert academic quiz designer. Produce exactly 10 easy-level unique MCQ questions testing conceptual understanding. All 4 options (A,B,C,D) must be plausible. Provide a brief explanation. Return ONLY valid JSON format.`;
-            count = 10;
         } else if (level === 'intermediate') {
-            systemMsg = `System: You are a senior academic assessment designer. Produce exactly 15 applied and analytical intermediate-level unique MCQ questions. Case-based or real-world scenario. Return ONLY valid JSON format.`;
-            count = 15;
+            systemMsg = `System: You are a senior academic assessment designer. Produce exactly 10 applied and analytical intermediate-level unique MCQ questions. Case-based or real-world scenario. Return ONLY valid JSON format.`;
         } else {
-            systemMsg = `System: You are an official exam paper designer. Produce exactly 20 hard-level exam-grade unique questions including case studies or paragraph comprehension. Return ONLY valid JSON format.`;
-            count = 20;
+            systemMsg = `System: You are an official exam paper designer. Produce exactly 10 hard-level exam-grade unique questions including case studies or paragraph comprehension. Return ONLY valid JSON format.`;
         }
 
         // Sanitize module names to prevent prompt injection
@@ -165,7 +164,8 @@ app.post('/api/generate', async (req, res) => {
         }));
         
         const prompt = `${systemMsg}
-Generate exactly ${count} unique questions for the following modules:
+This is BATCH ${safeChunkIndex} of ${safeTotalChunks} for this test.
+Generate exactly 10 unique questions covering random parts of the following modules. DO NOT repeat standard questions from previous batches.
 ${JSON.stringify(sanitizedModules)}
 
 Return JSON:
