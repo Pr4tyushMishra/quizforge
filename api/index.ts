@@ -91,15 +91,38 @@ Content: ${text.substring(0, 20000)}`
 app.post('/api/generate', async (req, res) => {
     try {
         const { modules, level } = req.body;
-        const count = level === 'hard' ? 20 : (level === 'intermediate' ? 40 : 20);
+        // Hard: 50, Intermediate: 30, Easy: 20
+        const count = level === 'hard' ? 50 : (level === 'intermediate' ? 30 : 20);
         
         const data = await safeGenerate(
-            `You are an expert academic quiz designer. Level: ${level}`,
-            `Generate exactly ${count} unique questions for: ${JSON.stringify(modules)}. Return JSON format.`
+            `You are an expert academic quiz designer specializing in ${level} level assessments.`,
+            `Generate exactly ${count} unique multiple-choice questions for the following modules: ${JSON.stringify(modules)}.
+            
+            Return ONLY valid JSON in this exact format:
+            {
+              "questions": [
+                {
+                  "id": "q1",
+                  "type": "mcq",
+                  "question": "Question text?",
+                  "options": { "A": "...", "B": "...", "C": "...", "D": "..." },
+                  "correct": "A",
+                  "explanation": "Why A is correct",
+                  "topic": "Module Name",
+                  "difficulty": "${level}"
+                }
+              ]
+            }`
         );
+        
+        // Safety check to ensure we always have an array
+        if (!data || !data.questions) {
+            throw new Error("AI returned invalid data structure (missing 'questions' array)");
+        }
+        
         res.json(data);
     } catch (error: any) {
-        console.error(error);
+        console.error("Generation Error:", error);
         res.status(500).json({ error: error.message });
     }
 });

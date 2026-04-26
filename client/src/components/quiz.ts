@@ -53,15 +53,32 @@ export class QuizComponent {
 
   startQuiz() {
     const raw = sessionStorage.getItem('qf_quiz');
-    if (!raw) return;
-    this.quizData = JSON.parse(raw);
+    if (!raw) {
+      alert("No quiz data found. Redirecting...");
+      (window as any).Router.navigate('level');
+      return;
+    }
+    
+    try {
+      this.quizData = JSON.parse(raw);
+      if (!this.quizData?.questions || !Array.isArray(this.quizData.questions) || this.quizData.questions.length === 0) {
+        throw new Error("Invalid or empty quiz data received.");
+      }
+    } catch (e) {
+      alert("Failed to load quiz: " + (e as Error).message);
+      (window as any).Router.navigate('level');
+      return;
+    }
+
     this.currentIdx = 0;
     this.answers = {};
     this.flagged.clear();
     this.timeElapsed = 0;
 
     const level = sessionStorage.getItem('qf_level') || 'easy';
-    this.timeLimit = level === 'easy' ? 20 * 60 : level === 'intermediate' ? 60 * 60 : 90 * 60;
+    // Hard: 50, Intermediate: 30, Easy: 20
+    const qCount = this.quizData.questions.length;
+    this.timeLimit = level === 'easy' ? 20 * 60 : level === 'intermediate' ? 45 * 60 : 90 * 60;
 
     const lvlBadge = document.getElementById('quiz-level-badge');
     if (lvlBadge) lvlBadge.textContent = level.toUpperCase();
