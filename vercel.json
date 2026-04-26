@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm install && npm run build",
+  "installCommand": "npm install && cd client && npm install && cd ../server && npm install",
+  "buildCommand": "cd client && npm run build",
   "outputDirectory": "client/dist",
-  "installCommand": "cd client && npm install && cd ../server && npm install",
   "functions": {
     "api/**/*.ts": {
       "maxDuration": 60
